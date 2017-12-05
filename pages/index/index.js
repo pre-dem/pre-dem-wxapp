@@ -15,6 +15,10 @@ Page({
       url: '../logs/logs'
     })
   },
+  sendCustomEvent: function() {
+    const predem = require('./../../utils/pre-dem-wxapp.js')
+    predem.sendCustomEvent()
+  },
   onLoad: function () {
     if (app.globalData.userInfo) {
       this.setData({

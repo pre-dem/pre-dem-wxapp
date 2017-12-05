@@ -1,8 +1,9 @@
 //app.js
-require('./utils/pre-dem-wxapp.js')
+const dem = require('./utils/pre-dem-wxapp.js')
 
 App({
   onLaunch: function () {
+    dem.init('http://192.168.0.18:9998', 'B0J9dA4ZtQCxKjLrNaltHxXo', '1.0.0', '1234567')
     // 展示本地存储能力
     var logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
