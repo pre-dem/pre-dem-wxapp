@@ -1,0 +1,25 @@
+{
+  "name": "pre-dem-wxapp",
+  "version": "1.0.0",
+  "description": "wxapp data analyse",
+  "main": "pre-dem-wxapp/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pre-dem/pre-dem-wxapp.git"
+  },
+  "keywords": [
+    "data"
+  ],
+  "author": "pre-dem",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pre-dem/pre-dem-wxapp/issues"
+  },
+  "homepage": "https://github.com/pre-dem/pre-dem-wxapp#readme",
+  "devDependencies": {
+    "webpack": "^3.10.0"
+  }
+}
