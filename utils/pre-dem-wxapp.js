@@ -5,78 +5,30 @@ const
   SdkVersion = '1.0.0',
   AppKeyLength = 24,
   AppIdLength = 8,
-  UploadInterval = 10
+  UploadInterval = 10 * 1000 // 10 秒
 
 const
-  UuidStorageKey = "predem_uuid",
-  CustomEventStorageKey = "predem_custom_event",
-  HttpEventStorageKey = "predem_http_event",
-  LogEventStorageKey = "predem_log_event"
+  CustomEventApi = 'custom-events',
+  HttpEventApi = 'http-monitors',
+  LogEventApi = 'log-capture'
 
-function injectFunction(obj, methodName, func) {
-  if (obj[methodName]) {
-    var tmp = obj[methodName];
-    obj[methodName] = (...param) => {
-      func.call(this, param, methodName)
-      tmp.call(this, param)
-    }
-  } else obj[methodName] = param => {
-    func.call(this, param, methodName)
-  }
-}
+const
+  UuidStorageKey = 'predem_uuid',
+  CustomEventStorageKey = 'predem_custom_event',
+  HttpEventStorageKey = 'predem_http_event',
+  LogEventStorageKey = 'predem_log_event'
 
-const generateMetadata = () => {
-  const systemInfo = wx.getSystemInfoSync()
-  const pages = getCurrentPages()
-  var ret = {
-    time: Date.now(),
-    sdk_version: SdkVersion,
-    sdk_id: generateUuid(),
-    device_model: systemInfo.model,
-    mini_program_type: MoniProgramType,
-    mini_program_version: systemInfo.version,
-    mini_program_sdk_version: systemInfo.SDKVersion
-  }
-  _appVersion && (ret.app_version = _appVersion)
-  _openId && (ret.tag = _openId)
-  if (pages.length != 0) {
-    let route = pages[pages.length - 1].route
-    route && (ret.path = route)
-  }
-  return ret
-}
+const
+  CustomEventType = 'custom',
+  AutoCapturedEventType = 'auto_captured'
 
-const sendEvent = (subPath, event) => {
-  wx.request({
-    url: _domain + '/v2/' + _appId + '/' + subPath,
-    data: event,
-    method: 'POST'
-  })
-}
+const
+  AppInfoEventName = 'app',
+  CrashReportEventName = 'crash',
+  HttpMonitorEventName = 'monitor',
+  LogCaptureEventName = 'log'
 
-const sendCustomEvent = (customEvent) => {
-  var event = generateMetadata()
-  event.content = JSON.stringify(customEvent)
-  sendEvent('custom-events', event)
-}
-
-const sendHttpEvent = (httpEvent) => {
-  var event = generateMetadata()
-  event.content = JSON.stringify(httpEvent)
-  sendEvent('http-monitors', event)
-}
-
-const sendLog = (logEvent) => {
-  var event = generateMetadata()
-  event.content = JSON.stringify(logEvent)
-  sendEvent('log-capture', event)
-}
-
-const generateUuid = () => {
-  const uuid = wx.getStorageSync(UuidStorageKey) || "" + Date.now() + Math.floor(1e7 * Math.random())
-  wx.setStorageSync(UuidStorageKey, uuid)
-  return uuid
-}
+const OriginMethodPrefix = '_origin_'
 
 const init = (domain, appKey, appVersion, openId) => {
   if (appKey.length !== AppKeyLength) {
@@ -92,6 +44,7 @@ const init = (domain, appKey, appVersion, openId) => {
   _appVersion = appVersion || ''
   _openId = openId || ''
   startCaptureLog()
+  setInterval(startSendReport, UploadInterval)
 }
 
 const request = (requestObject) => {
@@ -116,16 +69,144 @@ const request = (requestObject) => {
     content.end_timestamp = Date.now()
     content.status_code = ret.statusCode
     content.data_length = JSON.stringify(ret.data).length
-    sendHttpEvent(content)
+    persistHttpEvent(content)
   })
 
   injectFunction(newRequestObject, 'fail', (ret) => {
     content.end_timestamp = Date.now()
     content.network_error_msg = ret.errMsg
-    sendHttpEvent(content)
+    persistHttpEvent(content)
   })
 
   wx.request(newRequestObject)
+}
+
+const captureCustomEvent = (eventName, eventData) => {
+  persistCustomEvent(eventName, eventData)
+}
+
+const startCaptureLog = () => {
+  const levels = ['debug', 'info', 'warn', 'error', 'log']
+
+  for (const level of levels) {
+    injectFunction(console, level, (...args) => {
+      persistLogEvent({
+        level,
+        message: args[0]
+      })
+    })
+  }
+}
+
+const startSendReport = () => {
+  sendCustomEvents()
+  sendHttpEvents()
+  sendLogEvents()
+}
+
+const persistCustomEvent = (eventName, content) => {
+  var event = generateMetadata()
+  event.type = CustomEventType
+  event.name = eventName
+  content && (event.content = JSON.stringify(content))
+  persistEvent(CustomEventStorageKey, event)
+}
+
+const persistHttpEvent = (content) => {
+  var event = generateMetadata()
+  event.type = AutoCapturedEventType
+  event.name = HttpMonitorEventName
+  content && (event.content = JSON.stringify(content))
+  persistEvent(HttpEventStorageKey, event)
+}
+
+const persistLogEvent = (content) => {
+  var event = generateMetadata()
+  event.type = AutoCapturedEventType
+  event.name = LogCaptureEventName
+  content && (event.content = JSON.stringify(content))
+  persistEvent(LogEventStorageKey, event)
+}
+
+const persistEvent = (key, event) => {
+  wx.getStorage({
+    key,
+    success: (ret) => {
+      let events = ret.data
+      events.push(JSON.stringify(event))
+      wx.setStorage({
+        key,
+        data: events,
+      })
+    },
+    fail: () => {
+      let events = [JSON.stringify(event)]
+      wx.setStorage({
+        key,
+        data: events,
+      })
+    },
+  })
+}
+
+const sendCustomEvents = () => {
+  wx.getStorage({
+    key: CustomEventStorageKey,
+    success: function (ret) {
+      sendEvents(CustomEventApi, ret.data, () => {
+        wx.removeStorage({
+          key: CustomEventStorageKey,
+        })
+      })
+    },
+  })
+}
+
+const sendHttpEvents = () => {
+  wx.getStorage({
+    key: HttpEventStorageKey,
+    success: function (ret) {
+      sendEvents(HttpEventApi, ret.data, () => {
+        wx.removeStorage({
+          key: HttpEventStorageKey,
+        })
+      })
+    },
+  })
+}
+
+const sendLogEvents = () => {
+  wx.getStorage({
+    key: LogEventStorageKey,
+    success: function (ret) {
+      sendEvents(LogEventApi, ret.data, (ret) => {
+        wx.removeStorage({
+          key: LogEventStorageKey,
+        })
+      })
+    },
+  })
+}
+
+const sendEvents = (subPath, events, success) => {
+  let data = events.join('\n')
+  log('log', subPath + data)
+  wx.request({
+    url: _domain + '/v2/' + _appId + '/' + subPath,
+    data,
+    method: 'POST',
+    success: (ret) => {
+      if (ret.statusCode >= 200 && ret.statusCode < 300) {
+        success(ret)
+      }
+    }
+  })
+}
+
+const generateUuid = () => {
+  const uuid = wx.getStorageSync(UuidStorageKey) || "" + Date.now() + Math.floor(1e7 * Math.random())
+  wx.setStorageSync(UuidStorageKey, uuid)
+  return uuid
 }
 
 const parseUrl = (url) => {
@@ -148,39 +229,46 @@ const parseUrl = (url) => {
   return { domain, path }
 }
 
-function startCaptureLog() {
-  const levels = ['debug', 'info', 'warn', 'error', 'log']
 
-  for (const level of levels) {
-    injectFunction(console, level, (...args) => {
-      const tempArgs = [];
-      args.map((arg) => {
-        if (arg instanceof Object) {
-          tempArgs.push(JSON.stringify(arg))
-        } else {
-          tempArgs.push(arg)
-        }
-      })
-      const message = tempArgs.join(' ')
-      sendLog({
-        level,
-        message
-      })
-    })
+function injectFunction(obj, methodName, func) {
+  if (obj[methodName]) {
+    obj[OriginMethodPrefix + methodName] = obj[methodName]
+    obj[methodName] = (...params) => {
+      func.call(this, params, methodName)
+      obj[OriginMethodPrefix + methodName].call(this, params)
+    }
+  } else obj[methodName] = (...params) => {
+    func.call(this, params, methodName)
   }
 }
 
-const startReport = () => {
-  setTimeout(startReport, UploadInterval)
+const generateMetadata = () => {
+  const systemInfo = wx.getSystemInfoSync()
+  const pages = getCurrentPages()
+  var ret = {
+    time: Date.now(),
+    sdk_version: SdkVersion,
+    sdk_id: generateUuid(),
+    device_model: systemInfo.model,
+    mini_program_type: MoniProgramType,
+    mini_program_version: systemInfo.version,
+    mini_program_sdk_version: systemInfo.SDKVersion
+  }
+  _appVersion && (ret.app_version = _appVersion)
+  _openId && (ret.tag = _openId)
+  if (pages.length != 0) {
+    let route = pages[pages.length - 1].route
+    route && (ret.path = route)
+  }
+  return ret
+}
+
+const log = (level, ...args) => {
+  console[OriginMethodPrefix + level](args)
 }
 
 module.exports = {
   init,
-  sendCustomEvent,
+  captureCustomEvent,
   request,
 }
-
-setTimeout(() => {
-  console.log("%s", "yesy")
-}, 1000)
-

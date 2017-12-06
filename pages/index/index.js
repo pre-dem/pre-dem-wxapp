@@ -17,12 +17,18 @@ Page({
     })
   },
   sendCustomEvent: function() {
-    predem.sendCustomEvent()
+    predem.captureCustomEvent('testEvent', {
+      test1: 1,
+      test2: 2
+    })
   },
   sendHttpRequest: function () {
     predem.request({
       url: 'http://www.baidu.com'
     })
+  },
+  logMessage: function () {
+    console.log('test log', 'test arg')
   },
   onLoad: function () {
     if (app.globalData.userInfo) {

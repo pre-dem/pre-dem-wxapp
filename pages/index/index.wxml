@@ -8,6 +8,7 @@
     </block>
     <button bindtap='sendCustomEvent'>发送自定义事件</button>
     <button bindtap='sendHttpRequest'>发送网络请求</button>
+    <button bindtap='logMessage'>打印 log</button>
   </view>
   <view class="usermotto">
     <text class="user-motto">{{motto}}</text>
