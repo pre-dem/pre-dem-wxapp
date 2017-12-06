@@ -1,6 +1,7 @@
 //index.js
 //获取应用实例
 const app = getApp()
+const predem = require('./../../utils/pre-dem-wxapp.js')
 
 Page({
   data: {
@@ -16,8 +17,12 @@ Page({
     })
   },
   sendCustomEvent: function() {
-    const predem = require('./../../utils/pre-dem-wxapp.js')
     predem.sendCustomEvent()
+  },
+  sendHttpRequest: function () {
+    predem.request({
+      url: 'http://www.baidu.com'
+    })
   },
   onLoad: function () {
     if (app.globalData.userInfo) {

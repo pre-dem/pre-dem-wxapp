@@ -1,8 +1,29 @@
-const SdkVersion = '1.0.0'
-const APP_KEY_LENGTH = 24
-const APP_ID_LENGTH = 8
+var _openId, _domain, _appId, _appVersion
 
-var _openId = '', _domain = '', _appId = '', _appVersion = ''
+const
+  MoniProgramType = 'WeChat',
+  SdkVersion = '1.0.0',
+  AppKeyLength = 24,
+  AppIdLength = 8,
+  UploadInterval = 10
+
+const
+  UuidStorageKey = "predem_uuid",
+  CustomEventStorageKey = "predem_custom_event",
+  HttpEventStorageKey = "predem_http_event",
+  LogEventStorageKey = "predem_log_event"
+
+function injectFunction(obj, methodName, func) {
+  if (obj[methodName]) {
+    var tmp = obj[methodName];
+    obj[methodName] = (...param) => {
+      func.call(this, param, methodName)
+      tmp.call(this, param)
+    }
+  } else obj[methodName] = param => {
+    func.call(this, param, methodName)
+  }
+}
 
 const generateMetadata = () => {
   const systemInfo = wx.getSystemInfoSync()
@@ -12,7 +33,7 @@ const generateMetadata = () => {
     sdk_version: SdkVersion,
     sdk_id: generateUuid(),
     device_model: systemInfo.model,
-    mini_program_type: 'WeChat',
+    mini_program_type: MoniProgramType,
     mini_program_version: systemInfo.version,
     mini_program_sdk_version: systemInfo.SDKVersion
   }
@@ -39,15 +60,27 @@ const sendCustomEvent = (customEvent) => {
   sendEvent('custom-events', event)
 }
 
+const sendHttpEvent = (httpEvent) => {
+  var event = generateMetadata()
+  event.content = JSON.stringify(httpEvent)
+  sendEvent('http-monitors', event)
+}
+
+const sendLog = (logEvent) => {
+  var event = generateMetadata()
+  event.content = JSON.stringify(logEvent)
+  sendEvent('log-capture', event)
+}
+
 const generateUuid = () => {
-  const uuid = wx.getStorageSync("predem_uuid") || "" + Date.now() + Math.floor(1e7 * Math.random())
-  wx.setStorageSync("predem_uuid", uuid)
+  const uuid = wx.getStorageSync(UuidStorageKey) || "" + Date.now() + Math.floor(1e7 * Math.random())
+  wx.setStorageSync(UuidStorageKey, uuid)
   return uuid
 }
 
 const init = (domain, appKey, appVersion, openId) => {
-  if (appKey.length !== APP_KEY_LENGTH) {
-    console.error('清正确设置 appKey，长度为 ' + APP_KEY_LENGTH)
+  if (appKey.length !== AppKeyLength) {
+    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
     return
   }
   if (domain.length == 0) {
@@ -55,34 +88,43 @@ const init = (domain, appKey, appVersion, openId) => {
     return
   }
   _domain = domain
-  _appId = appKey.substring(0, APP_ID_LENGTH)
+  _appId = appKey.substring(0, AppIdLength)
   _appVersion = appVersion || ''
   _openId = openId || ''
+  startCaptureLog()
 }
 
 const request = (requestObject) => {
   var content = {
     start_timestamp: Date.now(),
-    method: requestObject.method,
   }
-  let domainAndPath = parseUrl(requestObject.url)
-  domainAndPath.domain && (content.domain = domainAndPath.domain)
-  domainAndPath.path && (content.path = domainAndPath.path)
+  if (requestObject) {
+    if (requestObject.method) {
+      content.method = requestObject.method
+    } else {
+      content.method = 'GET'
+    }
+    if (requestObject.url) {
+      let domainAndPath = parseUrl(requestObject.url)
+      domainAndPath && domainAndPath.domain && (content.domain = domainAndPath.domain)
+      domainAndPath && domainAndPath.path && (content.path = domainAndPath.path)
+    }
+  }
 
   var newRequestObject = Object.assign({}, requestObject)
-  newRequestObject.success = (ret) => {
+  injectFunction(newRequestObject, 'success', (ret) => {
     content.end_timestamp = Date.now()
     content.status_code = ret.statusCode
     content.data_length = JSON.stringify(ret.data).length
-    requestObject.success(ret)
-    sendCustomEvent(content)
-  }
-  newRequestObject.fail = (ret) => {
+    sendHttpEvent(content)
+  })
+
+  injectFunction(newRequestObject, 'fail', (ret) => {
     content.end_timestamp = Date.now()
     content.network_error_msg = ret.errMsg
-    requestObject.fail(ret)
-    sendCustomEvent(content)
-  }
+    sendHttpEvent(content)
+  })
+
   wx.request(newRequestObject)
 }
 
@@ -106,39 +148,39 @@ const parseUrl = (url) => {
   return { domain, path }
 }
 
-const debug = console.debug
-console.debug = (obj) => {
-  debug(obj)
+function startCaptureLog() {
+  const levels = ['debug', 'info', 'warn', 'error', 'log']
+
+  for (const level of levels) {
+    injectFunction(console, level, (...args) => {
+      const tempArgs = [];
+      args.map((arg) => {
+        if (arg instanceof Object) {
+          tempArgs.push(JSON.stringify(arg))
+        } else {
+          tempArgs.push(arg)
+        }
+      })
+      const message = tempArgs.join(' ')
+      sendLog({
+        level,
+        message
+      })
+    })
+  }
 }
 
-const info = console.info
-console.info = (obj) => {
-  info(obj)
-}
-
-const warn = console.warn
-console.warn = (obj) => {
-  warn(obj)
-}
-
-const error = console.error
-console.error = (obj) => {
-  error(obj)
+const startReport = () => {
+  setTimeout(startReport, UploadInterval)
 }
 
 module.exports = {
   init,
-  sendCustomEvent
+  sendCustomEvent,
+  request,
 }
 
 setTimeout(() => {
-  console.info(generateMetadata())
-  console.info(wx.getSystemInfoSync())
-  request({
-    url: 'http://www.baidu.com',
-    success: (ret) => {
-      console.log(ret)
-    }
-  })
+  console.log("%s", "yesy")
 }, 1000)
 
