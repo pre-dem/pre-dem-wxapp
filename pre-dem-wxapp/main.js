@@ -267,10 +267,6 @@ const log = (level, ...args) => {
   console[OriginMethodPrefix + level](args)
 }
 
-export function isError(raw) {
-  return raw instanceof Error
-}
-
 module.exports = {
   init,
   captureCustomEvent,

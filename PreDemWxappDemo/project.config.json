@@ -10,7 +10,7 @@
 	"compileType": "miniprogram",
 	"libVersion": "1.6.6",
 	"appid": "wx62dc7ea31ffc95e3",
-	"projectname": "PreDemWxapp",
+	"projectname": "PreDemWxappDemo",
 	"condition": {
 		"search": {
 			"current": -1,
