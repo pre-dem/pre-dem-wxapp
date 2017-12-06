@@ -4,5 +4,8 @@ module.exports = {
     path: __dirname + '/PreDemWxappDemo/utils',
     filename: 'pre-dem-wxapp.js',
     libraryTarget:'umd'
+  },
+  externals: {
+    'pre-dem-wxapp-conf': './pre-dem-wxapp-conf.js'
   }
 }

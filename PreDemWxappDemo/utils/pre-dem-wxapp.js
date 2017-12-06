@@ -1,13 +1,13 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
+		module.exports = factory(require("./pre-dem-wxapp-conf.js"));
 	else if(typeof define === 'function' && define.amd)
-		define([], factory);
+		define(["./pre-dem-wxapp-conf.js"], factory);
 	else {
-		var a = factory();
+		var a = typeof exports === 'object' ? factory(require("./pre-dem-wxapp-conf.js")) : factory(root["./pre-dem-wxapp-conf.js"]);
 		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
 	}
-})(typeof self !== 'undefined' ? self : this, function() {
+})(typeof self !== 'undefined' ? self : this, function(__WEBPACK_EXTERNAL_MODULE_1__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -75,8 +75,9 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
+const conf = __webpack_require__(1)
 var _openId, _domain, _appId, _appVersion
 
 const
@@ -108,23 +109,6 @@ const
   LogCaptureEventName = 'log'
 
 const OriginMethodPrefix = '_origin_'
-
-const init = (domain, appKey, appVersion, openId) => {
-  if (appKey.length !== AppKeyLength) {
-    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
-    return
-  }
-  if (domain.length == 0) {
-    console.error('清正确设置 domain，不能为空')
-    return
-  }
-  _domain = domain
-  _appId = appKey.substring(0, AppIdLength)
-  _appVersion = appVersion || ''
-  _openId = openId || ''
-  startCaptureLog()
-  setInterval(startSendReport, UploadInterval)
-}
 
 const request = requestObject => {
   var content = {
@@ -346,12 +330,38 @@ const log = (level, ...args) => {
   console[OriginMethodPrefix + level](args)
 }
 
+const setOpenId = openId => {
+  _openId = openId || ''  
+}
+
 module.exports = {
-  init,
+  setOpenId,
   captureCustomEvent,
   request,
 }
 
+!function() {
+  if (conf.appKey.length !== AppKeyLength) {
+    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
+    return
+  }
+  if (conf.domain.length == 0) {
+    console.error('清正确设置 domain，不能为空')
+    return
+  }
+  _domain = conf.domain
+  _appId = conf.appKey.substring(0, AppIdLength)
+  _appVersion = conf.appVersion || ''
+  startCaptureLog()
+  setInterval(startSendReport, UploadInterval)
+}()
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
 /***/ })
 /******/ ]);

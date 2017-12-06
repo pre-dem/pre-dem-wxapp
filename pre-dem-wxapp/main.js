@@ -1,3 +1,4 @@
+const conf = require('pre-dem-wxapp-conf')
 var _openId, _domain, _appId, _appVersion
 
 const
@@ -29,23 +30,6 @@ const
   LogCaptureEventName = 'log'
 
 const OriginMethodPrefix = '_origin_'
-
-const init = (domain, appKey, appVersion, openId) => {
-  if (appKey.length !== AppKeyLength) {
-    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
-    return
-  }
-  if (domain.length == 0) {
-    console.error('清正确设置 domain，不能为空')
-    return
-  }
-  _domain = domain
-  _appId = appKey.substring(0, AppIdLength)
-  _appVersion = appVersion || ''
-  _openId = openId || ''
-  startCaptureLog()
-  setInterval(startSendReport, UploadInterval)
-}
 
 const request = requestObject => {
   var content = {
@@ -267,8 +251,28 @@ const log = (level, ...args) => {
   console[OriginMethodPrefix + level](args)
 }
 
+const setOpenId = openId => {
+  _openId = openId || ''  
+}
+
 module.exports = {
-  init,
+  setOpenId,
   captureCustomEvent,
   request,
 }
+
+!function() {
+  if (conf.appKey.length !== AppKeyLength) {
+    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
+    return
+  }
+  if (conf.domain.length == 0) {
+    console.error('清正确设置 domain，不能为空')
+    return
+  }
+  _domain = conf.domain
+  _appId = conf.appKey.substring(0, AppIdLength)
+  _appVersion = conf.appVersion || ''
+  startCaptureLog()
+  setInterval(startSendReport, UploadInterval)
+}()
