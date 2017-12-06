@@ -336,17 +336,11 @@ const log = (level, ...args) => {
   console[OriginMethodPrefix + level](args)
 }
 
-const isError = raw => {
-  return raw instanceof Error
-}
-
 module.exports = {
   init,
   captureCustomEvent,
   request,
 }
-
-console.log('test')
 
 
 /***/ })
