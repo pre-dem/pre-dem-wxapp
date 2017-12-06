@@ -3,7 +3,6 @@ module.exports = {
   output: {
     path: __dirname + '/PreDemWxappDemo/utils',
     filename: 'pre-dem-wxapp.js',
-    library: 'predem',
     libraryTarget:'umd'
   }
 }
