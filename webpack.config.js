@@ -1,3 +1,5 @@
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+
 module.exports = {
   entry: __dirname + '/pre-dem-wxapp/main.js',
   output: {
@@ -7,5 +9,8 @@ module.exports = {
   },
   externals: {
     'pre-dem-wxapp-conf': './pre-dem-wxapp-conf.js'
-  }
+  },
+  plugins: [
+    new UglifyJsPlugin()
+  ]
 }
