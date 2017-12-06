@@ -174,7 +174,6 @@ const sendLogEvents = () => {
 
 const sendEvents = (subPath, events, success) => {
   let data = events.join('\n')
-  log('log', subPath + data)
   wx.request({
     url: _domain + '/v2/' + _appId + '/' + subPath,
     data,
@@ -245,10 +244,6 @@ const generateMetadata = () => {
     route && (ret.path = route)
   }
   return ret
-}
-
-const log = (level, ...args) => {
-  console[OriginMethodPrefix + level](args)
 }
 
 const setOpenId = openId => {
