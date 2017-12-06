@@ -4,21 +4,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 20rpx;
 }
 
-.userinfo-avatar {
-  width: 128rpx;
-  height: 128rpx;
+button {
   margin: 20rpx;
-  border-radius: 50%;
-}
-
-.userinfo-nickname {
-  color: #aaa;
-  margin: 20rpx;
-}
-
-.usermotto {
-  margin-top: 200px;
 }
