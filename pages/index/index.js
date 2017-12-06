@@ -24,7 +24,7 @@ Page({
   },
   sendHttpRequest: function () {
     predem.request({
-      url: 'http://www.baidu.com'
+      url: 'https://www.baidu.com'
     })
   },
   logMessage: function () {

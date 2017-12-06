@@ -47,7 +47,7 @@ const init = (domain, appKey, appVersion, openId) => {
   setInterval(startSendReport, UploadInterval)
 }
 
-const request = (requestObject) => {
+const request = requestObject => {
   var content = {
     start_timestamp: Date.now(),
   }
@@ -65,14 +65,14 @@ const request = (requestObject) => {
   }
 
   var newRequestObject = Object.assign({}, requestObject)
-  injectFunction(newRequestObject, 'success', (ret) => {
+  injectFunction(newRequestObject, 'success', ret => {
     content.end_timestamp = Date.now()
     content.status_code = ret.statusCode
-    content.data_length = JSON.stringify(ret.data).length
+    ret.data && (content.data_length = JSON.stringify(ret.data).length)
     persistHttpEvent(content)
   })
 
-  injectFunction(newRequestObject, 'fail', (ret) => {
+  injectFunction(newRequestObject, 'fail', ret => {
     content.end_timestamp = Date.now()
     content.network_error_msg = ret.errMsg
     persistHttpEvent(content)
@@ -112,7 +112,7 @@ const persistCustomEvent = (eventName, content) => {
   persistEvent(CustomEventStorageKey, event)
 }
 
-const persistHttpEvent = (content) => {
+const persistHttpEvent = content => {
   var event = generateMetadata()
   event.type = AutoCapturedEventType
   event.name = HttpMonitorEventName
@@ -120,7 +120,7 @@ const persistHttpEvent = (content) => {
   persistEvent(HttpEventStorageKey, event)
 }
 
-const persistLogEvent = (content) => {
+const persistLogEvent = content => {
   var event = generateMetadata()
   event.type = AutoCapturedEventType
   event.name = LogCaptureEventName
@@ -165,7 +165,7 @@ const sendCustomEvents = () => {
 const sendHttpEvents = () => {
   wx.getStorage({
     key: HttpEventStorageKey,
-    success: function (ret) {
+    success: ret => {
       sendEvents(HttpEventApi, ret.data, () => {
         wx.removeStorage({
           key: HttpEventStorageKey,
@@ -178,8 +178,8 @@ const sendHttpEvents = () => {
 const sendLogEvents = () => {
   wx.getStorage({
     key: LogEventStorageKey,
-    success: function (ret) {
-      sendEvents(LogEventApi, ret.data, (ret) => {
+    success: ret => {
+      sendEvents(LogEventApi, ret.data, ret => {
         wx.removeStorage({
           key: LogEventStorageKey,
         })
@@ -195,7 +195,7 @@ const sendEvents = (subPath, events, success) => {
     url: _domain + '/v2/' + _appId + '/' + subPath,
     data,
     method: 'POST',
-    success: (ret) => {
+    success: ret => {
       if (ret.statusCode >= 200 && ret.statusCode < 300) {
         success(ret)
       }
@@ -209,7 +209,7 @@ const generateUuid = () => {
   return uuid
 }
 
-const parseUrl = (url) => {
+const parseUrl = url => {
   var domain = "";
   var path = "";
   const array1 = url.split("//");
@@ -235,10 +235,10 @@ function injectFunction(obj, methodName, func) {
     obj[OriginMethodPrefix + methodName] = obj[methodName]
     obj[methodName] = (...params) => {
       func.call(this, params, methodName)
-      obj[OriginMethodPrefix + methodName].call(this, params)
+      obj[OriginMethodPrefix + methodName].call(this, ...params)
     }
   } else obj[methodName] = (...params) => {
-    func.call(this, params, methodName)
+    func.call(this, ...params, methodName)
   }
 }
 
