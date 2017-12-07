@@ -73,6 +73,7 @@ const captureCustomEvent = (eventName, eventData) => {
 }
 
 const captureError = err => {
+  err.stack && (err = err.stack)
   persistCrashEvent({
     crash_log_key: err
   })
