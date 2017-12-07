@@ -1,4 +1,4 @@
 /**index.wxss**/
 button {
-  margin: 20rpx;
+   margin: 5rpx; 
 }

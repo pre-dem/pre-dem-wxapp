@@ -7,4 +7,9 @@
   <button bindtap='send5xxRequest'>发送 5xx 请求</button>
   <button bindtap='logMessage'>打印 log</button>
   <button bindtap='throwError'>throwError</button>
+  <button bindtap='throwError'>throwError</button>
+  <button bindtap='overfolwError'>overfolwError</button>
+  <button bindtap='funcNotFoundError'>funcNotFoundError</button>
+  <button bindtap='throwError'>throwError</button>
+  <button bindtap='tryCatchError'>tryCatchError</button>
 </view>

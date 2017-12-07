@@ -72,6 +72,12 @@ const captureCustomEvent = (eventName, eventData) => {
   persistCustomEvent(eventName, eventData)
 }
 
+const captureError = err => {
+  persistCrashEvent({
+    crash_log_key: err
+  })
+}
+
 const startCaptureLog = () => {
   const levels = ['debug', 'info', 'warn', 'error', 'log']
 
@@ -312,11 +318,13 @@ module.exports = {
   setOpenId,
   captureCustomEvent,
   request,
+  captureError
 }
 
 const startCaptureError = () => {
   setTimeout(() => {
     let app = getApp()
+    app.dem = module.exports    
     var originOnError = app.onError  
     let errorHandle = err => {
       persistCrashEvent({
@@ -332,7 +340,6 @@ const startCaptureError = () => {
       }
     }
     App({
-      dem: module.exports,
       onError
     })
   }, 0)
