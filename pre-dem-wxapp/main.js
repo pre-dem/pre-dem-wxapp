@@ -1,6 +1,6 @@
 const conf = require('pre-dem-wxapp-conf')
 var _openId, _domain, _appId, _appVersion
-var _isSendingHttp = false, _isSendingLog = false, _isSendingCustom = false
+var _isSendingHttp = false, _isSendingLog = false, _isSendingCustom = false, _isSendingCrash = false
 
 const
   MoniProgramType = 'WeChat',
@@ -12,13 +12,15 @@ const
 const
   CustomEventApi = 'custom-events',
   HttpEventApi = 'http-monitors',
-  LogEventApi = 'log-capture'
+  LogEventApi = 'log-capture',
+  CrashEventApi = 'crashes'
 
 const
   UuidStorageKey = 'predem_uuid',
   CustomEventStorageKey = 'predem_custom_event',
   HttpEventStorageKey = 'predem_http_event',
-  LogEventStorageKey = 'predem_log_event'
+  LogEventStorageKey = 'predem_log_event',
+  CrashEventStorageKey = 'predem_crash_event'  
 
 const
   CustomEventType = 'custom',
@@ -87,6 +89,7 @@ const startSendReport = () => {
   sendCustomEvents()
   sendHttpEvents()
   sendLogEvents()
+  sendCrashEvents()
   setTimeout(startSendReport, UploadInterval)
 }
 
@@ -112,6 +115,14 @@ const persistLogEvent = content => {
   event.name = LogCaptureEventName
   content && (event.content = JSON.stringify(content))
   persistEvent(LogEventStorageKey, event)
+}
+
+const persistCrashEvent = content => {
+  var event = generateMetadata()
+  event.type = AutoCapturedEventType
+  event.name = CrashReportEventName
+  content && (event.content = JSON.stringify(content))
+  persistEvent(CrashEventStorageKey, event)
 }
 
 const persistEvent = (key, event) => {
@@ -191,6 +202,26 @@ const sendLogEvents = () => {
     },
     complete: () => {
       _isSendingLog = false
+    }
+  })
+}
+
+const sendCrashEvents = () => {
+  if (_isSendingCrash) {
+    return
+  }
+  _isSendingCrash = true
+  wx.getStorage({
+    key: CrashEventStorageKey,
+    success: ret => {
+      sendEvents(CrashEventApi, ret.data, ret => {
+        wx.removeStorage({
+          key: CrashEventStorageKey,
+        })
+      })
+    },
+    complete: () => {
+      _isSendingCrash = false
     }
   })
 }
@@ -283,10 +314,29 @@ module.exports = {
   request,
 }
 
-setTimeout(() => {
-  getApp().dem = module.exports
-}, 0)
-
+const startCaptureError = () => {
+  setTimeout(() => {
+    let app = getApp()
+    var originOnError = app.onError  
+    let errorHandle = err => {
+      persistCrashEvent({
+        crash_log_key: err
+      })
+    }
+    var onError = errorHandle
+  
+    if (originOnError) {
+      onError = err => {
+        originOnError(err)
+        errorHandle(err)
+      }
+    }
+    App({
+      dem: module.exports,
+      onError
+    })
+  }, 0)
+}
 
 !function() {
   if (conf.appKey.length !== AppKeyLength) {
@@ -301,5 +351,6 @@ setTimeout(() => {
   _appId = conf.appKey.substring(0, AppIdLength)
   _appVersion = conf.appVersion || ''
   startCaptureLog()
+  startCaptureError()
   setTimeout(startSendReport, UploadInterval)
 }()

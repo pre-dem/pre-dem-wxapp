@@ -21,6 +21,10 @@ Page({
       })
     }
   },
+  throwError: () => {
+    console.log(app)
+    throw new Error("这是一个错误，你抛出了异常！")
+  },
   send2xxRequest: () => {
     let codes = [200, 201, 203, 204]
     for (let index in codes) {

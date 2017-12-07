@@ -6,4 +6,5 @@
   <button bindtap='send4xxRequest'>发送 4xx 请求</button>
   <button bindtap='send5xxRequest'>发送 5xx 请求</button>
   <button bindtap='logMessage'>打印 log</button>
+  <button bindtap='throwError'>throwError</button>
 </view>
