@@ -17,9 +17,9 @@ const isEven = num => {
 Page({
   data: {},
   sendCustomEvent: () => {
-    app.dem.captureCustomEvent('testEvent', {
-      test1: 1,
-      test2: 2
+    app.dem.captureCustomEvent('事件名称', {
+      '参数1': '参数值1',
+      '参数2': '参数值2',
     })
   },
   requestWeb: () => {
