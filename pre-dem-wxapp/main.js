@@ -283,6 +283,11 @@ module.exports = {
   request,
 }
 
+setTimeout(() => {
+  getApp().dem = module.exports
+}, 0)
+
+
 !function() {
   if (conf.appKey.length !== AppKeyLength) {
     console.error('请正确设置 appKey，长度为 ' + AppKeyLength)

@@ -1,6 +1,9 @@
 <!--index.wxml-->
 <view class="userinfo">
   <button bindtap='sendCustomEvent'>发送自定义事件</button>
-  <button bindtap='sendHttpRequest'>发送网络请求</button>
+  <button bindtap='requestWeb'>请求一个网页</button>
+  <button bindtap='send2xxRequest'>发送 2xx 请求</button>
+  <button bindtap='send4xxRequest'>发送 4xx 请求</button>
+  <button bindtap='send5xxRequest'>发送 5xx 请求</button>
   <button bindtap='logMessage'>打印 log</button>
 </view>
