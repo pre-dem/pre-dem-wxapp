@@ -43,8 +43,40 @@ const dem = require('./utils/pre-dem-wxapp.js')
 至此，您已经完成了基本的配置，下面可以运行您的小程序，很快，您就可以在 predem 的后台看到上报的数据了
 
 ## 高级功能
+
 - 设置 `OpenId`
+
 我们的 sdk 不会主动获取用户的 `OpenId` 信息，如果您需要在我们的平台使用 `OpenId` 进行用户数据的检索与分析，请在获取用户授权之后使用我们提供的接口设置 `OpenId`
 ```
+wx.login({
+      success: res => {
+        if (res.code) {
+          let data = {
+            appid: '此处填写您的在微信小程序后台获取到的 app id',
+            secret: '此处填写您的在微信小程序后台获取到的 app secret',
+            js_code: res.code,
+            grant_type: 'authorization_code'
+          }
+          wx.request({
+            url: 'https://api.weixin.qq.com/sns/jscode2session',
+            data,
+            success: res => {
+              res.openid && dem.setOpenId(res.openid)
+            }
+          })
+        }
+      }
+    })
+```
 
+- 上报自定义事件
+
+当您有一些需要需要自定义统计的数据要上报时，可以使用我们的自定义事件上报功能
+```
+let app = getApp()
+
+app.dem.captureCustomEvent('事件名称', {
+  '参数1': '参数值1',
+  '参数2': '参数值2',
+})
 ```

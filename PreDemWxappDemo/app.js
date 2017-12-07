@@ -22,13 +22,6 @@ App({
         }
       }
     })
-    wx.getUserInfo({
-      withCredentials: true,
-      lang: '',
-      success: function(res) {},
-      fail: function(res) {},
-      complete: function(res) {},
-    })
   },
   onError: function(err) {
     console.log('test app handle error')
