@@ -2,6 +2,18 @@
 //获取应用实例
 const app = getApp()
 
+const isEven = num => {
+  if (num === 0) {
+    return true;
+  }
+
+  if (num === 1) {
+    return false;
+  }
+
+  return isEven(Math.abs(num) - 2);
+}
+
 Page({
   data: {},
   sendCustomEvent: () => {
@@ -56,5 +68,25 @@ Page({
   },
   logMessage: () => {
     console.log('test log', 'test arg')
+  },
+  throwError: () => {
+    throw new Error("这是一个错误，你抛出了异常！")
+  },
+  overfolwError: () => {
+    isEven(100000)
+  },
+  funcNotFoundError: () => {
+    try {
+      window.a.b !== 2
+    } catch (ex) {
+      captureException(ex)
+    }
+  },
+  tryCatchError: () => {
+    try {
+        window.a.b !== 2
+      } catch (e) {
+        app.dem.captureError(e);
+      }
   }
 })

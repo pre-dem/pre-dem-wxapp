@@ -1,11 +1,4 @@
 /**index.wxss**/
-
-.userinfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 button {
-  margin: 20rpx;
+   margin: 5rpx; 
 }
