@@ -1,5 +1,6 @@
 const conf = require('pre-dem-wxapp-conf')
 var _openId, _domain, _appId, _appVersion
+var _isSendingHttp = false, _isSendingLog = false, _isSendingCustom = false
 
 const
   MoniProgramType = 'WeChat',
@@ -86,6 +87,7 @@ const startSendReport = () => {
   sendCustomEvents()
   sendHttpEvents()
   sendLogEvents()
+  setTimeout(startSendReport, UploadInterval)
 }
 
 const persistCustomEvent = (eventName, content) => {
@@ -134,6 +136,10 @@ const persistEvent = (key, event) => {
 }
 
 const sendCustomEvents = () => {
+  if (_isSendingCustom) {
+    return
+  }
+  _isSendingCustom = true
   wx.getStorage({
     key: CustomEventStorageKey,
     success: function (ret) {
@@ -143,10 +149,17 @@ const sendCustomEvents = () => {
         })
       })
     },
+    complete: () => {
+      _isSendingCustom = false
+    }
   })
 }
 
 const sendHttpEvents = () => {
+  if (_isSendingHttp) {
+    return
+  }
+  _isSendingHttp = true
   wx.getStorage({
     key: HttpEventStorageKey,
     success: ret => {
@@ -156,10 +169,17 @@ const sendHttpEvents = () => {
         })
       })
     },
+    complete: () => {
+      _isSendingHttp = false
+    }
   })
 }
 
 const sendLogEvents = () => {
+  if (_isSendingLog) {
+    return
+  }
+  _isSendingLog = true
   wx.getStorage({
     key: LogEventStorageKey,
     success: ret => {
@@ -169,6 +189,9 @@ const sendLogEvents = () => {
         })
       })
     },
+    complete: () => {
+      _isSendingLog = false
+    }
   })
 }
 
@@ -187,9 +210,13 @@ const sendEvents = (subPath, events, success) => {
 }
 
 const generateUuid = () => {
-  const uuid = wx.getStorageSync(UuidStorageKey) || "" + Date.now() + Math.floor(1e7 * Math.random())
-  wx.setStorageSync(UuidStorageKey, uuid)
-  return uuid
+  let d = new Date().getTime();
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (d + Math.random()*16)%16 | 0;
+    d = Math.floor(d/16);
+    return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+  });
+  return uuid;
 }
 
 const parseUrl = url => {
@@ -258,16 +285,16 @@ module.exports = {
 
 !function() {
   if (conf.appKey.length !== AppKeyLength) {
-    console.error('清正确设置 appKey，长度为 ' + AppKeyLength)
+    console.error('请正确设置 appKey，长度为 ' + AppKeyLength)
     return
   }
   if (conf.domain.length == 0) {
-    console.error('清正确设置 domain，不能为空')
+    console.error('请正确设置 domain，不能为空')
     return
   }
   _domain = conf.domain
   _appId = conf.appKey.substring(0, AppIdLength)
   _appVersion = conf.appVersion || ''
   startCaptureLog()
-  setInterval(startSendReport, UploadInterval)
+  setTimeout(startSendReport, UploadInterval)
 }()
