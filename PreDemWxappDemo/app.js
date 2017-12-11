@@ -2,7 +2,8 @@
 const dem = require('./utils/pre-dem-wxapp.js')
 
 App({
-  onLaunch: function () {
+  onLaunch: () => {
+    console.log('on lauch')
     wx.login({
       success: res => {
         if (res.code) {
@@ -23,7 +24,10 @@ App({
       }
     })
   },
-  onError: function(err) {
+  onError: err => {
     console.log('test app handle error')
+  },
+  onShow: obj => {
+    console.log(obj)
   }
 })
