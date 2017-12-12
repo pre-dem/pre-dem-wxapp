@@ -1,6 +1,16 @@
 const conf = require('pre-dem-wxapp-conf')
 var _openId, _domain, _appId, _appVersion
-var _isSendingHttp = false, _isSendingLog = false, _isSendingCustom = false, _isSendingCrash = false
+var 
+  _isSendingHttp = false,
+  _isSendingLog = false,
+  _isSendingCustom = false,
+  _isSendingCrash = false,
+  _isRetrievingAppConfig = false
+
+var 
+  _localLogCaptureEnabled = true, 
+  _localCrashReportEnabled = true,
+  _appConfig
 
 const
   MoniProgramType = 'WeChat',
@@ -20,7 +30,8 @@ const
   CustomEventStorageKey = 'predem_custom_event',
   HttpEventStorageKey = 'predem_http_event',
   LogEventStorageKey = 'predem_log_event',
-  CrashEventStorageKey = 'predem_crash_event'  
+  CrashEventStorageKey = 'predem_crash_event',
+  AppConfigStorageKey = 'predem_app_config'
 
 const
   CustomEventType = 'custom',
@@ -84,10 +95,13 @@ const startCaptureLog = () => {
 
   for (const level of levels) {
     injectFunction(console, level, (...args) => {
-      persistLogEvent({
-        level,
-        message: args[0]
-      })
+      if (_localLogCaptureEnabled && 
+        (_appConfig === undefined || _appConfig.log_capture_enabled)) {
+        persistLogEvent({
+          level,
+          message: args[0]
+        })
+      }
     })
   }
 }
@@ -233,7 +247,7 @@ const sendCrashEvents = () => {
   })
 }
 
-const sendEvents = (subPath, events, success) => {
+const sendEvents = (subPath, events, success, fail) => {
   let data = events.join('\n')
   wx.request({
     url: _domain + '/v2/' + _appId + '/' + subPath,
@@ -242,8 +256,11 @@ const sendEvents = (subPath, events, success) => {
     success: ret => {
       if (ret.statusCode >= 200 && ret.statusCode < 300) {
         success(ret)
+      } else {
+        fail(ret)
       }
-    }
+    },
+    fail
   })
 }
 
@@ -315,6 +332,14 @@ const setOpenId = openId => {
   _openId = openId || ''  
 }
 
+const setLogCaptureEnable = enabled => {
+  _localLogCaptureEnabled = enabled
+}
+
+const setCrashReportEnable = enabled => {
+  _localCrashReportEnabled = enabled
+}
+
 module.exports = {
   setOpenId,
   captureCustomEvent,
@@ -322,15 +347,18 @@ module.exports = {
   captureError
 }
 
-const startCaptureError = () => {
+const registerHookToApp = () => {
   setTimeout(() => {
     let app = getApp()
     app.dem = module.exports    
-    var originOnError = app.onError  
+    var originOnError = app.onError
     let errorHandle = err => {
-      persistCrashEvent({
-        crash_log_key: err
-      })
+      if (_localCrashReportEnabled && 
+        (_appConfig === undefined || _appConfig.crash_report_enabled)) {
+        persistCrashEvent({
+          crash_log_key: err
+        })
+      }
     }
     var onError = errorHandle
   
@@ -340,10 +368,73 @@ const startCaptureError = () => {
         errorHandle(err)
       }
     }
+    // 所有注册的 onShow 都会顺次执行，所以不需要再手动执行 origin 了
     App({
-      onError
+      onError,
+      onShow:refreshAppConfig
     })
   }, 0)
+}
+
+const refreshAppConfig = () => {
+  if (_isRetrievingAppConfig === true) {
+    return
+  }
+  _isRetrievingAppConfig = true
+  if (_appConfig === undefined) {
+    wx.getStorage({
+      key: AppConfigStorageKey,
+      success: function(res){
+        if (res.data !== undefined && 
+          res.data.time !== undefined && 
+          res.data.log_capture_enabled !== undefined && 
+          res.data.crash_report_enabled !== undefined) {
+            if (new Date(Date.now).toLocaleDateString === new Date(res.data.time).toLocaleDateString) {
+              _appConfig = res.data
+              _isRetrievingAppConfig = false
+            } else {
+              refreshAppConfigFromRemote(ret => {
+                _isRetrievingAppConfig = false
+              })
+            }
+        } else {
+          refreshAppConfigFromRemote(ret => {
+            _isRetrievingAppConfig = false
+          })
+        }
+      },
+      fail: function() {
+        refreshAppConfigFromRemote(ret => {
+          _isRetrievingAppConfig = false
+        })
+      }
+    })
+  } else {
+    if (new Date(Date.now).toLocaleDateString !== new Date(_appConfig.time).toLocaleDateString) {
+      refreshAppConfigFromRemote(ret => {
+        _isRetrievingAppConfig = false
+      })
+    } else {
+      _isRetrievingAppConfig = false      
+    }
+  }
+}
+
+const refreshAppConfigFromRemote = (complete) => {
+  sendEvents('app-config', [JSON.stringify(generateMetadata())], ret => {
+    if (ret.data) {
+      if (ret.data.log_capture_enabled !== undefined && 
+        ret.data.crash_report_enabled !== undefined) {
+        _appConfig = ret.data
+        _appConfig.time = Date.now()
+        wx.setStorage({
+          key: AppConfigStorageKey,
+          data: _appConfig
+        })
+      }
+    }
+    complete(ret)
+  }, complete)
 }
 
 !function() {
@@ -359,6 +450,7 @@ const startCaptureError = () => {
   _appId = conf.appKey.substring(0, AppIdLength)
   _appVersion = conf.appVersion || ''
   startCaptureLog()
-  startCaptureError()
+  registerHookToApp()
+  refreshAppConfig()
   setTimeout(startSendReport, UploadInterval)
 }()
