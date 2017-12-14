@@ -48,18 +48,12 @@ const dem = require('./utils/pre-dem-wxapp.js')
 
 我们的 sdk 不会主动获取用户的 `OpenId` 信息，如果您需要在我们的平台使用 `OpenId` 进行用户数据的检索与分析，请在获取用户授权之后使用我们提供的接口设置 `OpenId`
 ```
-wx.login({
+    wx.login({
       success: res => {
         if (res.code) {
-          let data = {
-            appid: '此处填写您的在微信小程序后台获取到的 app id',
-            secret: '此处填写您的在微信小程序后台获取到的 app secret',
-            js_code: res.code,
-            grant_type: 'authorization_code'
-          }
           wx.request({
-            url: 'https://api.weixin.qq.com/sns/jscode2session',
-            data,
+            url: '此处填写您的获取OpenId的服务地址',
+            data: res.code,
             success: res => {
               res.openid && dem.setOpenId(res.openid)
             }
