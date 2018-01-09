@@ -1,4 +1,4 @@
-# pre-dem-cocoa
+# pre-dem-wxapp
 
 [![Build Status](https://travis-ci.org/pre-dem/pre-dem-wxapp.svg?branch=ci)](https://travis-ci.org/pre-dem/pre-dem-wxapp)
 
