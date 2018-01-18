@@ -1,14 +1,11 @@
 language: node_js
 node_js:
-- 8.9.0
+  - 8.9.0
 before_script:
-- npm install
-- wget -O qshell https://dn-devtools.qbox.me/2.1.5/qshell-linux-x64
-- chmod a+x qshell
-- "./qshell account $ak $sk"
+  - npm install
 script:
-- npm run build
-- "./qshell rput misc $(ls dist) dist/$(ls dist)"
+  - npm run build
+  - ./upload.sh
 env:
   global:
   - secure: yHYVjazJpjRcYa+E48HSidIXYok7KvlejzyMAf0AJJY8n3BPl2qARVvhgaupBVAr40uxDLvxHwf/UyOE30Cw3bfX3ovof8ofPZh9pCRgiiBA2Ack+yJhFr6TFidhFLRRqWEprEFRA1p2ZMCq5rLHjKTJxlqlfXfaSdd5Chf4GErkviGdWG3DWe3gC7yhdzkD8MDx6HJ9JbTHa9EesOv0jTuHr1bdVVQoXrNXj+f3qLnFqHmodo/YycZgi4XHm+o8dz2jLdEbfTg9V1+YX0K/Gwr6Fro2pD53m9Sh1GgrTY4OtsyNO52ssNJk1avbq8WI4XuR2YFgOFHJ27MK4xTDt3yu3j4GMSrgQYO8RLWXPjz38hLFJzf5v08cYrjZgLsnT8wZ7DZ8FtUVHc7WCNzMfKGXHmIrmjIAlDen/bykjar/efpGiakUlqGp45A8uJu+0Vs70kCdQBLFBpy6F4VD0VGh9zmN/jgNMmX6QpHaFCkSCvWQzC4dG2G5+bkaZIZJlStDFT+wKREl7PJAkhIWoXmYLae85D4Bnm4I+ypYuHkpT7TFaWbNTzDwhGAuy0OwfkAUoUn04IWKPjF5kF+1eM5nW14vzk/F6WHGoQ1OcDqpFS/qb+1D6bzR6yeZY9ajZJWjQvXuS3+gPd8ghQNuyqW+1UP6rjjdKfFq9K6dSJQ=
