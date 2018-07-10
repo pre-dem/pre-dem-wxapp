@@ -1,14 +1,15 @@
 const conf = require('pre-dem-wxapp-conf')
 var _openId, _domain, _appId, _appVersion
-var 
+var
   _isSendingHttp = false,
   _isSendingLog = false,
   _isSendingCustom = false,
   _isSendingCrash = false,
+  _isSendingTransaction = false,
   _isRetrievingAppConfig = false
 
-var 
-  _localLogCaptureEnabled = true, 
+var
+  _localLogCaptureEnabled = true,
   _localCrashReportEnabled = true,
   _appConfig
 
@@ -23,6 +24,7 @@ const
   CustomEventApi = 'custom-events',
   HttpEventApi = 'http-monitors',
   LogEventApi = 'log-capture',
+  TransactionEventApi = 'transactions',
   CrashEventApi = 'crashes'
 
 const
@@ -31,7 +33,8 @@ const
   HttpEventStorageKey = 'predem_http_event',
   LogEventStorageKey = 'predem_log_event',
   CrashEventStorageKey = 'predem_crash_event',
-  AppConfigStorageKey = 'predem_app_config'
+  AppConfigStorageKey = 'predem_app_config',
+  TransactionEventStorageKey = 'predem_transaction_event'
 
 const
   CustomEventType = 'custom',
@@ -41,9 +44,43 @@ const
   AppInfoEventName = 'app',
   CrashReportEventName = 'crash',
   HttpMonitorEventName = 'monitor',
-  LogCaptureEventName = 'log'
+  LogCaptureEventName = 'log',
+  TransactionEventName = 'auto_captured_transaction'
+
+const
+  TransactionTypeCompleted = 0,
+  TransactionTypeCancelled = 1,
+  TransactionTypeFailed = 2,
 
 const OriginMethodPrefix = '_origin_'
+
+const captureCustomEvent = (eventName, eventData) => {
+  persistCustomEvent(eventName, eventData)
+}
+
+const transactionStart = (transactionName) => {
+  return {
+    start_time: new Date().getTime(),
+    transaction_name: transactionName,
+    complete: () => {
+      this.end_time = new Date().getTime()
+      this.transaction_type = TransactionTypeCompleted
+      persistTransactionEvent(this)
+    },
+    cancelWithReason: (reason) => {
+      this.end_time = new Date().getTime()
+      this.transaction_type = TransactionTypeCancelled
+      this.reason = reason
+      persistTransactionEvent(this)
+    },
+    failWithReason: (reason) => {
+      this.end_time = new Date().getTime()
+      this.transaction_type = TransactionTypeFailed
+      this.reason = reason
+      persistTransactionEvent(this)
+    }
+  }
+}
 
 const request = requestObject => {
   var content = {
@@ -79,10 +116,6 @@ const request = requestObject => {
   wx.request(newRequestObject)
 }
 
-const captureCustomEvent = (eventName, eventData) => {
-  persistCustomEvent(eventName, eventData)
-}
-
 const captureError = err => {
   err.stack && (err = err.stack)
   persistCrashEvent({
@@ -95,7 +128,7 @@ const startCaptureLog = () => {
 
   for (const level of levels) {
     injectFunction(console, level, (...args) => {
-      if (_localLogCaptureEnabled && 
+      if (_localLogCaptureEnabled &&
         (_appConfig === undefined || _appConfig.log_capture_enabled)) {
         persistLogEvent({
           level,
@@ -111,6 +144,7 @@ const startSendReport = () => {
   sendHttpEvents()
   sendLogEvents()
   sendCrashEvents()
+  sendTransactionEvents()
   setTimeout(startSendReport, UploadInterval)
 }
 
@@ -144,6 +178,14 @@ const persistCrashEvent = content => {
   event.name = CrashReportEventName
   content && (event.content = JSON.stringify(content))
   persistEvent(CrashEventStorageKey, event)
+}
+
+const persistTransactionEvent = content => {
+  var event = generateMetadata()
+  event.type = AutoCapturedEventType
+  event.name = TransactionEventName
+  content && (event.content = JSON.stringify(content))
+  persistEvent(TransactionEventStorageKey, event)
 }
 
 const persistEvent = (key, event) => {
@@ -203,6 +245,26 @@ const sendHttpEvents = () => {
     },
     complete: () => {
       _isSendingHttp = false
+    }
+  })
+}
+
+const sendTransactionEvents = () => {
+  if (_isSendingTransaction) {
+    return
+  }
+  _isSendingTransaction = true
+  wx.getStorage({
+    key: TransactionEventStorageKey,
+    success: ret => {
+      sendEvents(TransactionEventApi, ret.data, () => {
+        wx.removeStorage({
+          key: TransactionEventStorageKey,
+        })
+      })
+    },
+    complete: () => {
+      _isSendingTransaction = false
     }
   })
 }
@@ -267,9 +329,9 @@ const sendEvents = (subPath, events, success, fail) => {
 const generateUuid = () => {
   let d = new Date().getTime();
   const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (d + Math.random()*16)%16 | 0;
-    d = Math.floor(d/16);
-    return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+    const r = (d + Math.random() * 16) % 16 | 0;
+    d = Math.floor(d / 16);
+    return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
   });
   return uuid;
 }
@@ -329,7 +391,7 @@ const generateMetadata = () => {
 }
 
 const setOpenId = openId => {
-  _openId = openId || ''  
+  _openId = openId || ''
 }
 
 const setLogCaptureEnable = enabled => {
@@ -350,10 +412,10 @@ module.exports = {
 const registerHookToApp = () => {
   setTimeout(() => {
     let app = getApp()
-    app.dem = module.exports    
+    app.dem = module.exports
     var originOnError = app.onError
     let errorHandle = err => {
-      if (_localCrashReportEnabled && 
+      if (_localCrashReportEnabled &&
         (_appConfig === undefined || _appConfig.crash_report_enabled)) {
         persistCrashEvent({
           crash_log_key: err
@@ -361,7 +423,7 @@ const registerHookToApp = () => {
       }
     }
     var onError = errorHandle
-  
+
     if (originOnError) {
       onError = err => {
         originOnError(err)
@@ -371,7 +433,7 @@ const registerHookToApp = () => {
     // 所有注册的 onShow 都会顺次执行，所以不需要再手动执行 origin 了
     App({
       onError,
-      onShow:refreshAppConfig
+      onShow: refreshAppConfig
     })
   }, 0)
 }
@@ -384,26 +446,26 @@ const refreshAppConfig = () => {
   if (_appConfig === undefined) {
     wx.getStorage({
       key: AppConfigStorageKey,
-      success: function(res){
-        if (res.data !== undefined && 
-          res.data.time !== undefined && 
-          res.data.log_capture_enabled !== undefined && 
+      success: function (res) {
+        if (res.data !== undefined &&
+          res.data.time !== undefined &&
+          res.data.log_capture_enabled !== undefined &&
           res.data.crash_report_enabled !== undefined) {
-            if (new Date(Date.now).toLocaleDateString === new Date(res.data.time).toLocaleDateString) {
-              _appConfig = res.data
+          if (new Date(Date.now).toLocaleDateString === new Date(res.data.time).toLocaleDateString) {
+            _appConfig = res.data
+            _isRetrievingAppConfig = false
+          } else {
+            refreshAppConfigFromRemote(ret => {
               _isRetrievingAppConfig = false
-            } else {
-              refreshAppConfigFromRemote(ret => {
-                _isRetrievingAppConfig = false
-              })
-            }
+            })
+          }
         } else {
           refreshAppConfigFromRemote(ret => {
             _isRetrievingAppConfig = false
           })
         }
       },
-      fail: function() {
+      fail: function () {
         refreshAppConfigFromRemote(ret => {
           _isRetrievingAppConfig = false
         })
@@ -415,7 +477,7 @@ const refreshAppConfig = () => {
         _isRetrievingAppConfig = false
       })
     } else {
-      _isRetrievingAppConfig = false      
+      _isRetrievingAppConfig = false
     }
   }
 }
@@ -423,7 +485,7 @@ const refreshAppConfig = () => {
 const refreshAppConfigFromRemote = (complete) => {
   sendEvents('app-config', [JSON.stringify(generateMetadata())], ret => {
     if (ret.data) {
-      if (ret.data.log_capture_enabled !== undefined && 
+      if (ret.data.log_capture_enabled !== undefined &&
         ret.data.crash_report_enabled !== undefined) {
         _appConfig = ret.data
         _appConfig.time = Date.now()
@@ -437,7 +499,7 @@ const refreshAppConfigFromRemote = (complete) => {
   }, complete)
 }
 
-!function() {
+!function () {
   if (conf.appKey.length !== AppKeyLength) {
     console.error('请正确设置 appKey，长度为 ' + AppKeyLength)
     return
