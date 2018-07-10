@@ -406,7 +406,8 @@ module.exports = {
   setOpenId,
   captureCustomEvent,
   request,
-  captureError
+  captureError,
+  transactionStart
 }
 
 const registerHookToApp = () => {

@@ -1,7 +1,7 @@
 //app.js
-const dem = require('./utils/pre-dem-wxapp.js')
 
 App({
+  dem: require('./utils/pre-dem-wxapp.js'),
   onLaunch: () => {
     wx.login({
       success: res => {
