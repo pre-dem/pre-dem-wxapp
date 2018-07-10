@@ -50,7 +50,7 @@ const
 const
   TransactionTypeCompleted = 0,
   TransactionTypeCancelled = 1,
-  TransactionTypeFailed = 2,
+  TransactionTypeFailed = 2
 
 const OriginMethodPrefix = '_origin_'
 
