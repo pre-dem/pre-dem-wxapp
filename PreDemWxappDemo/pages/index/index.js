@@ -43,7 +43,7 @@ Page({
         }
       })
     }
-  }, 
+  },
   send4xxRequest: () => {
     let codes = [400, 401, 403, 404]
     for (let index in codes) {
@@ -84,9 +84,24 @@ Page({
   },
   tryCatchError: () => {
     try {
-        window.a.b !== 2
-      } catch (e) {
-        app.dem.captureError(e);
-      }
+      window.a.b !== 2
+    } catch (e) {
+      app.dem.captureError(e);
+    }
+  },
+  transactionStart: function() {
+    this.data.transaction = app.dem.transactionStart("testTransaction")
+  },
+  transactionCompleted: function () {
+    this.data.transaction.complete()
+    this.data.transaction = undefined
+  },
+  transactionCancelled: function () {
+    this.data.transaction.cancelWithReason("cancelled reason")
+    this.data.transaction = undefined
+  },
+  transactionFailed: function () {
+    this.data.transaction.failWithReason("failed reason")
+    this.data.transaction = undefined
   }
 })

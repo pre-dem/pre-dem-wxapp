@@ -11,4 +11,8 @@
   <button bindtap='funcNotFoundError'>funcNotFoundError</button>
   <button bindtap='throwError'>throwError</button>
   <button bindtap='tryCatchError'>tryCatchError</button>
+  <button bindtap='transactionStart'>transactionStart</button>
+  <button bindtap='transactionCompleted'>transactionCompleted</button>
+  <button bindtap='transactionCancelled'>transactionCancelled</button>
+  <button bindtap='transactionFailed'>transactionFailed</button>
 </view>
