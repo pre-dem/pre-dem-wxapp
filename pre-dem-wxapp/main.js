@@ -58,6 +58,7 @@ const captureCustomEvent = (eventName, eventData) => {
   persistCustomEvent(eventName, eventData)
 }
 
+// 开始一个 transaction 并返回 transaction 的 handle 对象
 const transactionStart = (transactionName) => {
   return {
     start_time: new Date().getTime(),
@@ -82,11 +83,13 @@ const transactionStart = (transactionName) => {
   }
 }
 
+// 发起一个请求，并采集数据，用于替换 wx.request 方法
 const request = requestObject => {
   var content = {
     start_timestamp: Date.now(),
   }
   if (requestObject) {
+    // 未指定 method 时即 GET
     if (requestObject.method) {
       content.method = requestObject.method
     } else {
@@ -100,6 +103,7 @@ const request = requestObject => {
   }
 
   var newRequestObject = Object.assign({}, requestObject)
+  // 注入代码收集 end_timestamp, status_code 等数据
   injectFunction(newRequestObject, 'success', ret => {
     content.end_timestamp = Date.now()
     content.status_code = ret.statusCode
@@ -107,6 +111,7 @@ const request = requestObject => {
     persistHttpEvent(content)
   })
 
+  // 注入代码收集 network_error_msg 等数据
   injectFunction(newRequestObject, 'fail', ret => {
     content.end_timestamp = Date.now()
     content.network_error_msg = ret.errMsg
@@ -123,10 +128,12 @@ const captureError = err => {
   })
 }
 
+// 开始采集 log
 const startCaptureLog = () => {
   const levels = ['debug', 'info', 'warn', 'error', 'log']
 
   for (const level of levels) {
+    // 注入代码到 console 的 debug, info 等方法，以采集相关的 log
     injectFunction(console, level, (...args) => {
       if (_localLogCaptureEnabled &&
         (_appConfig === undefined || _appConfig.log_capture_enabled)) {
@@ -188,6 +195,7 @@ const persistTransactionEvent = content => {
   persistEvent(TransactionEventStorageKey, event)
 }
 
+// 存储事件到 storage 中
 const persistEvent = (key, event) => {
   wx.getStorage({
     key,
@@ -356,7 +364,7 @@ const parseUrl = url => {
   return { domain, path }
 }
 
-
+// 在 obj 中名称为 methodName 的方法中插入 func 的代码
 function injectFunction(obj, methodName, func) {
   if (obj[methodName]) {
     obj[OriginMethodPrefix + methodName] = obj[methodName]
