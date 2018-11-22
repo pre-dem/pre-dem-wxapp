@@ -1,5 +1,4 @@
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
-
+const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   entry: __dirname + '/pre-dem-wxapp/main.js',
   output: {
@@ -11,6 +10,6 @@ module.exports = {
     'pre-dem-wxapp-conf': './pre-dem-wxapp-conf.js'
   },
   plugins: [
-    new UglifyJsPlugin()
+    new TerserPlugin()
   ]
 }
