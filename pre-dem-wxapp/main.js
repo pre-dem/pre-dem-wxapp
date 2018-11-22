@@ -15,7 +15,7 @@ var
 
 const
   MoniProgramType = 'WeChat',
-  SdkVersion = '1.0.0',
+  SdkVersion = '1.0.1',
   AppKeyLength = 24,
   AppIdLength = 8,
   UploadInterval = 10 * 1000 // 10 秒
@@ -139,7 +139,7 @@ const startCaptureLog = () => {
         (_appConfig === undefined || _appConfig.log_capture_enabled)) {
         persistLogEvent({
           level,
-          message: args[0]
+          message: JSON.stringify(args[0])
         })
       }
     })
